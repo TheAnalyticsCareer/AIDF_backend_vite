@@ -2,13 +2,55 @@ const nodemailer = require('nodemailer');
 require("dotenv").config();
 
 // Create transporter
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: process.env.EMAIL_USER,
+//     pass: process.env.EMAIL_PASSWORD
+//   }
+// });
+
+
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
+  },
+  tls: {
+    // Necessary for Render's network
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
+  },
+  // Important for Render
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 10000
+});
+
+// Add this verification
+transporter.verify(function(error, success) {
+  if (error) {
+    console.error('SMTP Connection Test Failed:', {
+      error: error.message,
+      stack: error.stack,
+      envUser: process.env.EMAIL_USER,
+      envPassSet: !!process.env.EMAIL_PASSWORD
+    });
+  } else {
+    console.log('SMTP Connection Verified');
   }
 });
+
+
+
+
+
+
+
 
 // Email templates
 const emailTemplates = {
