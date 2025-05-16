@@ -3,6 +3,7 @@ const blogGenerator = require("./blogGenerator");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const path = require('path');
 const { exec } = require('child_process');
+const { sendEmail } = require('./emailService');
 const cors = require("cors");
 
 const pool = require("./db");
@@ -27,13 +28,13 @@ const limiter = rateLimit({
 
 // -----------------------------------------------------
 
-// app.use(cors({
-//   origin: 'https://b9f78690.aidfgroup-vite.pages.dev',
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//   credentials: true
-// }));
+app.use(cors({
+  origin: 'https://aidfgroup-vite.pages.dev',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 
-app.use(cors());
+// app.use(cors());
 
 // ----------------------------------------------------------------
 
@@ -165,14 +166,22 @@ app.get("/getUniqueBlog/:blogId", async (req, res) => {
 
 
 
+
+// ---------------------nodemailer function----------------------------------------------------------------->
+
+
+
 app.post("/submit-enquiry", async (req, res) => {
   try {
-    console.log("enquiry body----",req.body)
+    console.log("enquiry body----", req.body);
     const { name, phone, email, service, message } = req.body;
 
     // Validate input
     if (!name || !email || !phone) {
-      return res.status(400).send("Name, email, and phone are required");
+      return res.status(400).json({ 
+        success: false,
+        message: "Name, email, and phone are required"
+      });
     }
 
     // Save to database
@@ -182,25 +191,22 @@ app.post("/submit-enquiry", async (req, res) => {
       [name, phone, email, service, message]
     );
 
-    // Call PHP script
-    const enquiryData = JSON.stringify({ name, phone, email, service, message })
-                      .replace(/"/g, '\\"');
-    const phpScriptPath = path.join(__dirname, 'send_email.php');
-
-    exec(`php ${phpScriptPath} "${enquiryData}"`, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error("PHP Error:", stderr || error);
-        return res.status(500).send("Email failed: " + (stderr || error.message));
-      }
-      console.log("Email Result:", stdout);
-      res.send("Enquiry submitted successfully!");
+    // Send email
+    await sendEmail('enquiry', { name, phone, email, service, message });
+    
+    res.json({ 
+      success: true,
+      message: "Enquiry submitted successfully!" 
     });
   } catch (error) {
     console.error("Server Error:", error);
-    res.status(500).send("Internal server error");
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
-
 
 
 
@@ -210,42 +216,47 @@ app.post("/submit-enquiry", async (req, res) => {
 
 
 
+
+
+// -------------------------------------nodemailer function------------------------------------------------->
+
+
+
 app.post("/submit-quote", async (req, res) => {
   try {
-    const { name, phone, email,price,height,material,finish } = req.body;
+    const { name, phone, email, price, height, material, finish } = req.body;
 
     // Validate input
     if (!name || !email || !phone) {
-      return res.status(400).send("Name, email and phone are required");
+      return res.status(400).json({ 
+        success: false,
+        message: "Name, email and phone are required"
+      });
     }
 
     // Save to database
     await pool.query(
-      `INSERT INTO quotes (name, phone, email,price, height, material, finish) 
+      `INSERT INTO quotes (name, phone, email, price, height, material, finish) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, phone, email, price, height, material, finish]
     );
 
-    // Call PHP script
-    const enquiryData = JSON.stringify({ name, phone, email, price, height, material, finish })
-                      .replace(/"/g, '\\"');
-    const phpScriptPath = path.join(__dirname, 'quote_email.php');
-
-    exec(`php ${phpScriptPath} "${enquiryData}"`, (error, stdout, stderr) => {
-      if (error || stderr) {
-        console.error("PHP Error:", stderr || error);
-        return res.status(500).send("Email failed: " + (stderr || error.message));
-      }
-      console.log("Email Result:", stdout);
-      res.send("Enquiry submitted successfully!");
+    // Send email
+    await sendEmail('quote', { name, phone, email, price, height, material, finish });
+    
+    res.json({ 
+      success: true,
+      message: "Quote submitted successfully!" 
     });
   } catch (error) {
     console.error("Server Error:", error);
-    res.status(500).send("Internal server error");
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
-
-
 
 
 
