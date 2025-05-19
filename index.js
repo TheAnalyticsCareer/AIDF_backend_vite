@@ -35,26 +35,26 @@ const limiter = rateLimit({
 //   credentials: true
 // }));
 
-// app.use(cors());
+app.use(cors());
 
 
-app.use(cors({
-  origin: 'https://aidfgroup-vite.pages.dev', // <- cloudflare domain
-  credentials: true, // <- allow cookies and auth headers
-}));
+// app.use(cors({
+//   origin: 'https://aidfgroup-vite.pages.dev', // <- cloudflare domain
+//   credentials: true, // <- allow cookies and auth headers
+// }));
 
 
 
 
-app.use(session({
-  secret: 'your-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true,          // true for HTTPS
-    sameSite: 'none'       // allow cross-site
-  }
-}));
+// app.use(session({
+//   secret: 'your-secret',
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {
+//     secure: true,          // true for HTTPS
+//     sameSite: 'none'       // allow cross-site
+//   }
+// }));
 
 
 
