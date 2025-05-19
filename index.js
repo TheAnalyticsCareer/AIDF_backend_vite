@@ -203,7 +203,7 @@ app.get("/getUniqueBlog/:blogId", async (req, res) => {
 app.post("/submit-enquiry", async (req, res) => {
   try {
     console.log("enquiry body----", req.body);
-    const { name, phone, email, service, message } = req.body;
+    const { name, phone, email, service, place, message } = req.body;
 
     // Validate input
     if (!name || !email || !phone) {
@@ -215,13 +215,13 @@ app.post("/submit-enquiry", async (req, res) => {
 
     // Save to database
     await pool.query(
-      `INSERT INTO enquiries (name, phone, email, service, message) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [name, phone, email, service, message]
+      `INSERT INTO enquiries (name, phone, email, service, place, message) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [name, phone, email, service,place, message]
     );
 
     // Send email
-    await sendEmail('enquiry', { name, phone, email, service, message });
+    await sendEmail('enquiry', { name, phone, email, service, place, message });
     
     res.json({ 
       success: true,

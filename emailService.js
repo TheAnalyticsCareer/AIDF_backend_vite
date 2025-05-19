@@ -75,6 +75,7 @@ const emailTemplates = {
       <p><strong>Phone:</strong> ${data.phone}</p>
       <p><strong>Email:</strong> ${data.email}</p>
       <p><strong>Service:</strong> ${data.service}</p>
+      <p><strong>Place:</strong> ${data.place}</p>
       <p><strong>Message:</strong> ${data.message}</p>
     `
   })
