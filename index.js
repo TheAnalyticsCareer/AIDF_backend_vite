@@ -29,32 +29,34 @@ const limiter = rateLimit({
 
 // -----------------------------------------------------
 
+// app.use(cors({
+//   origin: 'https://aidf-home-interior-service.vercel.app',
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   credentials: true
+// }));
+
+// app.use(cors());
+
 app.use(cors({
-  origin: 'https://aidf-home-interior-service.vercel.app',
+  origin: ['https://aidf-home-interior-service.vercel.app', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
-// app.use(cors());
-
-
-// app.use(cors({
-//   origin: 'https://aidfgroup-vite.pages.dev', // <- cloudflare domain
-//   credentials: true, // <- allow cookies and auth headers
-// }));
 
 
 
 
-// app.use(session({
-//   secret: 'your-secret',
-//   resave: false,
-//   saveUninitialized: false,
-//   cookie: {
-//     secure: true,          // true for HTTPS
-//     sameSite: 'none'       // allow cross-site
-//   }
-// }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true for HTTPS in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
+}));
 
 
 
@@ -62,6 +64,15 @@ app.use(cors({
 
 app.use(express.json());
 app.use(limiter);
+
+
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // ---------------gemini blog generation--------------------------
 
@@ -189,10 +200,6 @@ app.get("/getUniqueBlog/:blogId", async (req, res) => {
 
 
 
-// ---------------------nodemailer function----------------------------------------------------------------->
-
-
-
 app.post("/submit-enquiry", async (req, res) => {
   try {
     console.log("enquiry body----", req.body);
@@ -238,40 +245,81 @@ app.post("/submit-enquiry", async (req, res) => {
 
 
 
+// app.post("/submit-quote", async (req, res) => {
+//   try {
+//     const { name, phone, email, price, height, material, finish } = req.body;
+
+//     // Validate input
+//     if (!name || !email || !phone) {
+//       return res.status(400).json({ 
+//         success: false,
+//         message: "Name, email and phone are required"
+//       });
+//     }
+
+//     // Save to database
+//     await pool.query(
+//       `INSERT INTO quotes (name, phone, email, price, height, material, finish) 
+//        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+//       [name, phone, email, price, height, material, finish]
+//     );
+
+//     // Send email
+//     await sendEmail('quote', { name, phone, email, price, height, material, finish });
+    
+//     res.json({ 
+//       success: true,
+//       message: "Quote submitted successfully!" 
+//     });
+//   } catch (error) {
+//     console.error("Server Error:", error);
+//     res.status(500).json({ 
+//       success: false,
+//       message: "Internal server error",
+//       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+//     });
+//   }
+// });
 
 
-// -------------------------------------nodemailer function------------------------------------------------->
 
 
 
 app.post("/submit-quote", async (req, res) => {
+  console.log("Received quote submission:", req.body);
   try {
     const { name, phone, email, price, height, material, finish } = req.body;
 
-    // Validate input
     if (!name || !email || !phone) {
+      console.log("Validation failed - missing required fields");
       return res.status(400).json({ 
         success: false,
         message: "Name, email and phone are required"
       });
     }
 
-    // Save to database
-    await pool.query(
+    console.log("Attempting to save to database...");
+    const [result] = await pool.query(
       `INSERT INTO quotes (name, phone, email, price, height, material, finish) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [name, phone, email, price, height, material, finish]
     );
+    console.log("Database save successful, ID:", result.insertId);
 
-    // Send email
+    console.log("Attempting to send email...");
     await sendEmail('quote', { name, phone, email, price, height, material, finish });
+    console.log("Email sent successfully");
     
     res.json({ 
       success: true,
       message: "Quote submitted successfully!" 
     });
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("Full error in submit-quote:", {
+      message: error.message,
+      stack: error.stack,
+      sqlMessage: error.sqlMessage
+    });
     res.status(500).json({ 
       success: false,
       message: "Internal server error",
@@ -283,7 +331,22 @@ app.post("/submit-quote", async (req, res) => {
 
 
 
+
+
 // ------------------------------------------------------------------------------------------
+
+
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
