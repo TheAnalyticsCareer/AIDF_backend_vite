@@ -12,14 +12,6 @@ const pool = mysql.createPool({
 
 
 
-// Test database connection
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error('Database connection failed:', err);
-  } else {
-    console.log('Database connected successfully');
-    connection.release();
-  }
-});
+
 
 module.exports = pool;
